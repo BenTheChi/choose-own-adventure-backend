@@ -1,29 +1,33 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
+
+// const ORIGIN = "realurl here";
+const ORIGIN = "http://localhost:5173";
+
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // For local development
-    methods: ['GET', 'POST'],
+    origin: ORIGIN, // For local development
+    methods: ["GET", "POST"],
   },
 });
 
 app.use(cors());
 
-io.on('connection', (socket) => {
-  console.log('A user connected to the chatroom');
+io.on("connection", (socket) => {
+  console.log("A user connected to the chatroom");
 
-  socket.on('chat-message', (message) => {
-    console.log('Received message:', message);
-    io.emit('chat-message', message); // Broadcast to all clients
+  socket.on("chat-message", (message) => {
+    console.log("Received message:", message);
+    io.emit("chat-message", message); // Broadcast to all clients
   });
 
-  socket.on('disconnect', () => {
-    console.log('A user disconnected from the chatroom');
+  socket.on("disconnect", () => {
+    console.log("A user disconnected from the chatroom");
   });
 });
 
