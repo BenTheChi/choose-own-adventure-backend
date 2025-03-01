@@ -1,6 +1,6 @@
 // Store state of the current game
 export interface GameObject {
-  gameState: string;
+  gameState: GameState;
   title: string;
   content: string;
   choices: string[];
@@ -20,4 +20,11 @@ export interface Turn {
 export interface User {
   name: string;
   isHost: boolean;
+}
+
+export enum GameState {
+  ENTRANCE,
+  LOBBY,
+  STORY,
+  FINISHED
 }

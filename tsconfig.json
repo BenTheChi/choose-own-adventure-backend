@@ -7,6 +7,6 @@
     "outDir": "./dist",
     "strict": true
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "model/interfaces.ts"],
   "exclude": ["node_modules", "dist"]
 }
