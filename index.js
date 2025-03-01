@@ -6,8 +6,8 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 
-// const ORIGIN = "realurl here";
-const ORIGIN = "http://localhost:5173";
+const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
+// const ORIGIN = "http://localhost:5173";
 
 const io = new Server(server, {
   cors: {
