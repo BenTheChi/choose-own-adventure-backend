@@ -18,6 +18,11 @@ const io = new Server(server, {
 
 app.use(cors());
 
+// Route handler for the root path
+app.get("/", (req, res) => {
+  res.send("Choose Your Own Adventure Socket.IO backend is running.");
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected to the chatroom");
 
