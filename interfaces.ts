@@ -6,7 +6,14 @@ export interface GameObject {
     choices: string[],
     turnNumber: number,
     maxTurns: number,
-    users: User[]
+    users: User[],
+    gameHistory: Turn[]
+}
+
+// Define interface to track what happens each turn
+export interface Turn {
+    prompt: string,
+    result: string
 }
 
 // Store info for each user
