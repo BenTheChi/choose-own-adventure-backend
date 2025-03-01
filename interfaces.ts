@@ -1,10 +1,11 @@
 // Store state of the current game
 export interface GameObject {
-    GameState: string,
+    gameState: string,
     title: string,
     content: string,
     choices: string[],
     turnNumber: number,
+    maxTurns: number,
     users: User[]
 }
 
