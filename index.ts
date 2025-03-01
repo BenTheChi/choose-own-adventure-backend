@@ -42,7 +42,7 @@ io.on("connection", (socket: any) => {
 
   socket.on(USER_ENTER_KEY, (user: User) => {
     console.log("User entered the room");
-    gameState.users.push({ name: user.name, isHost: user.isHost });
+    gameState.users.push({ name: user.name, isHost: user.isHost, hasVoted: user.hasVoted });
     gameState = checkAndReassignHost(gameState);
     socket.broadcast.emit(GAME_OBJECT_KEY, gameState);
   });

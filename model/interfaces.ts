@@ -20,6 +20,7 @@ export interface Turn {
 export interface User {
   name: string;
   isHost: boolean;
+  hasVoted: boolean;
 }
 
 export enum GameState {
