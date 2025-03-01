@@ -14,6 +14,7 @@ const io = new Server(server, {
     origin: ORIGIN, // For local development
     methods: ["GET", "POST"],
   },
+  path: "/socket.io",
 });
 
 app.use(cors());
