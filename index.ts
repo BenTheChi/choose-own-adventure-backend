@@ -2,9 +2,13 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+import { GameObject } from './interfaces';
 
 const app = express();
 const server = http.createServer(app);
+
+// declare GameObject which will continuously track game state to be 
+let gameState: GameObject;
 
 const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
 // const ORIGIN = "http://localhost:5173";
@@ -26,6 +30,9 @@ app.get("/", (req, res) => {
 
 io.on("connection", (socket) => {
   console.log("A user connected to the chatroom");
+  
+  // send out game data to all clients
+  socket.broadcast.emit("game-data", gameState);
 
   socket.on("chat-message", (message) => {
     console.log("Received message:", message);
