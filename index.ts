@@ -69,8 +69,10 @@ io.on("connection", (socket: any) => {
       const choice: number = choice_consensus(gameObject);
       gameObject.gameHistory.push({ content: gameObject.content, choice: gameObject.choices[choice] });
       gameObject = await llm(gameObject, gameObject.gameHistory);
+      if (gameObject.currTurn >= gameObject.maxTurns) {
+        gameObject.gameState = GameState.FINISHED;
+      }
     }
-    // TODO check turns here
     socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
   });
 
