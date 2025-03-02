@@ -75,8 +75,21 @@ io.on("connection", (socket: any) => {
       const choice: number = choice_consensus(gameObject);
       gameObject.gameHistory.push({ content: gameObject.content, choice: gameObject.choices[choice] });
       gameObject = await llm(gameObject, gameObject.gameHistory);
+
+      // Move gameState to FINISHED at start of the last turn
       if (gameObject.currTurn >= gameObject.maxTurns) {
+        
+        // Switch state to FINISHED and broadcast change to clients
         gameObject.gameState = GameState.FINISHED;
+        socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+
+        // wait 30 seconds
+        await new Promise(f => setTimeout(f, 30000)); 
+
+        // Store current users, wipe all other gameObject data, then add users back
+        const prevUsers = gameObject.users;
+        gameObject = initializeGameObject();
+        gameObject.users = prevUsers;
       }
     }
     socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
