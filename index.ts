@@ -28,7 +28,9 @@ import { llm } from "./llm";
 const app = express();
 const server = http.createServer(app);
 
-// declare GameObject which will continuously track game state to be
+let connectedUserCount = 0;
+
+// declare GameObject which will continuously track game state to be 
 let gameObject: GameObject = initializeGameObject();
 
 // const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
@@ -51,6 +53,10 @@ app.get("/", (req: any, res: any) => {
 
 io.on("connection", (socket: any) => {
   console.log("A user connected to the chatroom");
+
+  // Increment user count whenever a user connects
+  connectedUserCount++;
+
   // send out game data to all clients
   socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
 
@@ -94,13 +100,34 @@ io.on("connection", (socket: any) => {
         choice: gameObject.choices[choice],
       });
       gameObject = await llm(gameObject, gameObject.gameHistory);
+
+      // Move gameState to FINISHED at start of the last turn
+      if (gameObject.currTurn >= gameObject.maxTurns) {
+        
+        // Switch state to FINISHED and broadcast change to clients
+        gameObject.gameState = GameState.FINISHED;
+        socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+
+        // wait 30 seconds
+        await new Promise(f => setTimeout(f, 30000)); 
+
+        // Store current users, wipe all other gameObject data, then add users back
+        const prevUsers = gameObject.users;
+        gameObject = initializeGameObject();
+        gameObject.users = prevUsers;
+      }
     }
-    // TODO check turns here
     socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
   });
 
   socket.on("disconnect", () => {
     console.log("A user disconnected from the chatroom");
+
+    // Decrement user count whenever a user disconnects
+    connectedUserCount--;
+
+    // Reset entire game object if all users have disconnected
+    if (connectedUserCount <= 0) gameObject = initializeGameObject();
   });
 });
 
