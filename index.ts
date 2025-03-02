@@ -10,6 +10,8 @@ import { llm } from './llm';
 const app = express();
 const server = http.createServer(app);
 
+let connectedUserCount = 0;
+
 // declare GameObject which will continuously track game state to be 
 let gameObject: GameObject = initializeGameObject();
 
@@ -33,6 +35,10 @@ app.get("/", (req: any, res: any) => {
 
 io.on("connection", (socket: any) => {
   console.log("A user connected to the chatroom");
+
+  // Increment user count whenever a user connects
+  connectedUserCount++;
+
   // send out game data to all clients
   socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
 
@@ -78,6 +84,12 @@ io.on("connection", (socket: any) => {
 
   socket.on("disconnect", () => {
     console.log("A user disconnected from the chatroom");
+
+    // Decrement user count whenever a user disconnects
+    connectedUserCount--;
+
+    // Reset entire game object if all users have disconnected
+    if (connectedUserCount <= 0) gameObject = initializeGameObject();
   });
 });
 
