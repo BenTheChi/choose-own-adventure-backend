@@ -3,7 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 import { CHOICE, ChoiceSelected, GameObject, GameState, Turn, User } from './model/interfaces';
-import { initializeGameObject, checkAndReassignHost, updateGameObject } from './utils/utils';
+import { initializeGameObject, checkAndReassignHost, updateGameObject, choice_consensus } from './utils/utils';
 import { CHAT_MESSAGE_KEY, GAME_OBJECT_KEY, HOST_READY_KEY, USER_ENTER_KEY, CHOICE_SELECTED_KEY } from './model/constants';
 import { llm } from './llm';
 
@@ -62,14 +62,17 @@ io.on("connection", (socket: any) => {
     }
   })
 
-  socket.on(CHOICE_SELECTED_KEY, (choiceSelected: ChoiceSelected) => {
+  socket.on(CHOICE_SELECTED_KEY, async (choiceSelected: ChoiceSelected) => {
     let haveAllUsersVoted: boolean = false;
     ({ gameObject, haveAllUsersVoted } = updateGameObject(choiceSelected, gameObject));
     if (haveAllUsersVoted) {
-      // TODO implement this
+      const choice: number = choice_consensus(gameObject);
+      gameObject.gameHistory.push({ content: gameObject.content, choice: gameObject.choices[choice] });
+      gameObject = await llm(gameObject, gameObject.gameHistory);
     }
+    // TODO check turns here
     socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
-  })
+  });
 
   socket.on("disconnect", () => {
     console.log("A user disconnected from the chatroom");
