@@ -16,7 +16,7 @@ export interface GameObject {
 // Define interface to track what happens each turn
 export interface Turn {
   content: string;
-  result: string;
+  choice: string;
 }
 
 // Store info for each user

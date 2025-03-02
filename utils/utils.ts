@@ -1,4 +1,4 @@
-import { ChoiceSelected, GameObject, GameState } from "../model/interfaces";
+import { CHOICE, ChoiceSelected, GameObject, GameState } from "../model/interfaces";
 export function initializeGameObject(): GameObject {
     return {
         gameState: GameState.ENTRANCE,
@@ -30,4 +30,13 @@ export function updateGameObject(choiceSelected: ChoiceSelected, gameObject: Gam
     gameObject.users.find((user) => user.name === choiceSelected.user.name)!.choice = choiceSelected.choice;
     const haveAllUsersVoted: boolean = gameObject.users.every((user) => user.hasVoted);
     return { gameObject, haveAllUsersVoted };
+}
+
+export function choice_consensus(gameObject: GameObject) {
+    // Find the choice that has the most votes
+    const choices = gameObject.users.map((user) => user.choice);
+    const votes: number[] = [0, 0, 0, 0];
+    choices.forEach((choice) => votes[choice]++);
+    // Return the choice that has the most votes as CHOICE
+    return votes.indexOf(Math.max(...votes)) as CHOICE;
 }
