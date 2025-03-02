@@ -4,7 +4,7 @@
   "description": "Simple Socket.IO chatroom backend",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/index.js",
+    "start": "node index.js",
     "dev": "tsc && nodemon index.js"
   },
   "keywords": [
