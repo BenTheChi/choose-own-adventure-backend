@@ -43,6 +43,7 @@ io.on("connection", (socket: any) => {
 
   socket.on(USER_ENTER_KEY, (user: User) => {
     console.log("User entered the room");
+
     gameObject.users.push({
       name: user.name, isHost: user.isHost,
       hasVoted: false,
