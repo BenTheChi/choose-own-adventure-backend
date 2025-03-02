@@ -2,23 +2,41 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-import { CHOICE, ChoiceSelected, GameObject, GameState, Turn, User } from './model/interfaces';
-import { initializeGameObject, checkAndReassignHost, updateGameObject, choice_consensus } from './utils/utils';
-import { CHAT_MESSAGE_KEY, GAME_OBJECT_KEY, HOST_READY_KEY, USER_ENTER_KEY, CHOICE_SELECTED_KEY } from './model/constants';
-import { llm } from './llm';
+import {
+  CHOICE,
+  ChoiceSelected,
+  GameObject,
+  GameState,
+  Turn,
+  User,
+} from "./model/interfaces";
+import {
+  initializeGameObject,
+  checkAndReassignHost,
+  updateGameObject,
+  choice_consensus,
+} from "./utils/utils";
+import {
+  CHAT_MESSAGE_KEY,
+  GAME_OBJECT_KEY,
+  HOST_READY_KEY,
+  USER_ENTER_KEY,
+  CHOICE_SELECTED_KEY,
+} from "./model/constants";
+import { llm } from "./llm";
 
 const app = express();
 const server = http.createServer(app);
 
-// declare GameObject which will continuously track game state to be 
+// declare GameObject which will continuously track game state to be
 let gameObject: GameObject = initializeGameObject();
 
-const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
+// const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
 // const ORIGIN = "http://localhost:5173";
 
 const io = new Server(server, {
   cors: {
-    origin: ORIGIN, // For local development
+    origin: "*", // For local development
     methods: ["GET", "POST"],
   },
   path: "/socket.io",
@@ -45,9 +63,10 @@ io.on("connection", (socket: any) => {
     console.log("User entered the room");
 
     gameObject.users.push({
-      name: user.name, isHost: user.isHost,
+      name: user.name,
+      isHost: user.isHost,
       hasVoted: false,
-      choice: CHOICE.OPTION_1
+      choice: CHOICE.OPTION_1,
     });
     gameObject = checkAndReassignHost(gameObject);
     socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
@@ -60,14 +79,20 @@ io.on("connection", (socket: any) => {
       gameObject = await llm(gameObject, gameObject.gameHistory);
       socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
     }
-  })
+  });
 
   socket.on(CHOICE_SELECTED_KEY, async (choiceSelected: ChoiceSelected) => {
     let haveAllUsersVoted: boolean = false;
-    ({ gameObject, haveAllUsersVoted } = updateGameObject(choiceSelected, gameObject));
+    ({ gameObject, haveAllUsersVoted } = updateGameObject(
+      choiceSelected,
+      gameObject
+    ));
     if (haveAllUsersVoted) {
       const choice: number = choice_consensus(gameObject);
-      gameObject.gameHistory.push({ content: gameObject.content, choice: gameObject.choices[choice] });
+      gameObject.gameHistory.push({
+        content: gameObject.content,
+        choice: gameObject.choices[choice],
+      });
       gameObject = await llm(gameObject, gameObject.gameHistory);
     }
     // TODO check turns here
