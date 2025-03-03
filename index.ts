@@ -16,13 +16,6 @@ import {
   updateGameObject,
   choice_consensus,
 } from "./utils/utils";
-import {
-  CHAT_MESSAGE_KEY,
-  GAME_OBJECT_KEY,
-  HOST_READY_KEY,
-  USER_ENTER_KEY,
-  CHOICE_SELECTED_KEY,
-} from "./model/constants";
 import { llm } from "./llm";
 
 const app = express();
@@ -58,14 +51,14 @@ io.on("connection", (socket: any) => {
   connectedUserCount++;
 
   // send out game data to all clients
-  socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+  socket.broadcast.emit("game-object", gameObject);
 
-  socket.on(CHAT_MESSAGE_KEY, (message: string) => {
+  socket.on("chat-message", (message: string) => {
     console.log("Received message:", message);
-    io.emit(CHAT_MESSAGE_KEY, message); // Broadcast to all clients
+    io.emit("chat-message", message); // Broadcast to all clients
   });
 
-  socket.on(USER_ENTER_KEY, (user: User) => {
+  socket.on("user-enter", (user: User) => {
     console.log("User entered the room");
 
     gameObject.users.push({
@@ -75,19 +68,19 @@ io.on("connection", (socket: any) => {
       choice: CHOICE.OPTION_1,
     });
     gameObject = checkAndReassignHost(gameObject);
-    socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+    socket.broadcast.emit("game-object", gameObject);
   });
 
-  socket.on(HOST_READY_KEY, async (ready: string) => {
+  socket.on("host-ready", async (ready: string) => {
     // This means that the host is ready. The user ready key can only be sent by the host
     if ("true" === ready) {
       gameObject.gameState = GameState.STORY;
       gameObject = await llm(gameObject, gameObject.gameHistory);
-      socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+      socket.broadcast.emit("game-object", gameObject);
     }
   });
 
-  socket.on(CHOICE_SELECTED_KEY, async (choiceSelected: ChoiceSelected) => {
+  socket.on("choice-selected", async (choiceSelected: ChoiceSelected) => {
     let haveAllUsersVoted: boolean = false;
     ({ gameObject, haveAllUsersVoted } = updateGameObject(
       choiceSelected,
@@ -106,7 +99,7 @@ io.on("connection", (socket: any) => {
         
         // Switch state to FINISHED and broadcast change to clients
         gameObject.gameState = GameState.FINISHED;
-        socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+        socket.broadcast.emit("game-object", gameObject);
 
         // wait 30 seconds
         await new Promise(f => setTimeout(f, 30000)); 
@@ -117,7 +110,7 @@ io.on("connection", (socket: any) => {
         gameObject.users = prevUsers;
       }
     }
-    socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+    socket.broadcast.emit("game-object", gameObject);
   });
 
   socket.on("disconnect", () => {
