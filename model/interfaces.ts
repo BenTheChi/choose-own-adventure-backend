@@ -22,23 +22,23 @@ export interface Turn {
 // Store info for each user
 export interface User {
   name: string;
-  isHost: boolean;
-  hasVoted: boolean;
-  choice: CHOICE;
+  isHost?: boolean;
+  hasVoted?: boolean;
+  choice?: CHOICE;
 }
 
 export enum GameState {
   ENTRANCE,
   LOBBY,
   STORY,
-  FINISHED
+  FINISHED,
 }
 
 export enum CHOICE {
   OPTION_1,
   OPTION_2,
   OPTION_3,
-  OPTION_4
+  OPTION_4,
 }
 
 export interface ChoiceSelected {

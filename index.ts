@@ -1,7 +1,7 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import cors from "cors";
 import {
   CHOICE,
   ChoiceSelected,
@@ -12,25 +12,32 @@ import {
 } from "./model/interfaces";
 import {
   initializeGameObject,
-  checkAndReassignHost,
   updateGameObject,
   choice_consensus,
 } from "./utils/utils";
-import {
-  CHAT_MESSAGE_KEY,
-  GAME_OBJECT_KEY,
-  HOST_READY_KEY,
-  USER_ENTER_KEY,
-  CHOICE_SELECTED_KEY,
-} from "./model/constants";
 import { llm } from "./llm";
+
+const GAME_OBJECT = "game-object";
+const HOST_READY_KEY = "host-ready";
 
 const app = express();
 const server = http.createServer(app);
 
-let connectedUserCount = 0;
+// return {
+//   gameState: GameState.ENTRANCE,
+//   title: "",
+//   content: "",
+//   choices: [],
+//   turnNumber: 0,
+//   maxTurns: 0,
+//   users: [],
+//   gameHistory: [],
+//   theme: "",
+//   setting: "",
+//   currTurn: 0
+// }
 
-// declare GameObject which will continuously track game state to be 
+// declare GameObject which will continuously track game state to be
 let gameObject: GameObject = initializeGameObject();
 
 // const ORIGIN = "https://choose-own-adventure-frontend.onrender.com";
@@ -51,43 +58,49 @@ app.get("/", (req: any, res: any) => {
   res.send("Choose Your Own Adventure Socket.IO backend is running.");
 });
 
-io.on("connection", (socket: any) => {
-  console.log("A user connected to the chatroom");
+const userSockets = new Map<string, string>();
 
-  // Increment user count whenever a user connects
-  connectedUserCount++;
+io.on("connection", (socket: any) => {
+  console.log(`A user connected: ${socket.id}`);
 
   // send out game data to all clients
-  socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+  socket.broadcast.emit(GAME_OBJECT, gameObject);
 
-  socket.on(CHAT_MESSAGE_KEY, (message: string) => {
+  socket.on("chat-message", (message: string) => {
     console.log("Received message:", message);
     io.emit("chat-message", message); // Broadcast to all clients
   });
 
-  socket.on(USER_ENTER_KEY, (user: User) => {
-    console.log("User entered the room");
+  socket.on("user-enter", (user: User) => {
+    console.log(user.name + " entered the room");
+
+    userSockets.set(socket.id, user.name);
+
+    // If the user is the first to enter the room, assign them as the host
+    if (gameObject.users.length === 0) {
+      user.isHost = true;
+    }
 
     gameObject.users.push({
       name: user.name,
       isHost: user.isHost,
-      hasVoted: false,
-      choice: CHOICE.OPTION_1,
     });
-    gameObject = checkAndReassignHost(gameObject);
-    socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+
+    socket.emit(GAME_OBJECT, gameObject);
+    // Send to all other users
+    socket.broadcast.emit(GAME_OBJECT, gameObject);
   });
 
-  socket.on(HOST_READY_KEY, async (ready: string) => {
+  socket.on("host-ready", async (ready: string) => {
     // This means that the host is ready. The user ready key can only be sent by the host
     if ("true" === ready) {
       gameObject.gameState = GameState.STORY;
       gameObject = await llm(gameObject, gameObject.gameHistory);
-      socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+      socket.broadcast.emit(GAME_OBJECT, gameObject);
     }
   });
 
-  socket.on(CHOICE_SELECTED_KEY, async (choiceSelected: ChoiceSelected) => {
+  socket.on("choice-selected", async (choiceSelected: ChoiceSelected) => {
     let haveAllUsersVoted: boolean = false;
     ({ gameObject, haveAllUsersVoted } = updateGameObject(
       choiceSelected,
@@ -103,13 +116,12 @@ io.on("connection", (socket: any) => {
 
       // Move gameState to FINISHED at start of the last turn
       if (gameObject.currTurn >= gameObject.maxTurns) {
-        
         // Switch state to FINISHED and broadcast change to clients
         gameObject.gameState = GameState.FINISHED;
-        socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+        socket.broadcast.emit(GAME_OBJECT, gameObject);
 
         // wait 30 seconds
-        await new Promise(f => setTimeout(f, 30000)); 
+        await new Promise((f) => setTimeout(f, 30000));
 
         // Store current users, wipe all other gameObject data, then add users back
         const prevUsers = gameObject.users;
@@ -117,17 +129,37 @@ io.on("connection", (socket: any) => {
         gameObject.users = prevUsers;
       }
     }
-    socket.broadcast.emit(GAME_OBJECT_KEY, gameObject);
+    socket.broadcast.emit(GAME_OBJECT, gameObject);
   });
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected from the chatroom");
+    console.log(`User disconnected: ${socket.id}`);
 
-    // Decrement user count whenever a user disconnects
-    connectedUserCount--;
+    const userName = userSockets.get(socket.id);
+
+    if (userName) {
+      gameObject.users = gameObject.users.filter(
+        (user) => user.name !== userName
+      );
+      userSockets.delete(socket.id);
+
+      // Reassign host here
+      if (
+        gameObject.users.length > 0 &&
+        !gameObject.users.some((user) => user.isHost)
+      ) {
+        const newHostName = userSockets.values().next().value; // Get first entry
+        const newHost = gameObject.users.find(
+          (user) => user.name === newHostName
+        );
+        if (newHost) newHost.isHost = true;
+      }
+
+      io.emit(GAME_OBJECT, gameObject);
+    }
 
     // Reset entire game object if all users have disconnected
-    if (connectedUserCount <= 0) gameObject = initializeGameObject();
+    if (userSockets.size <= 0) gameObject = initializeGameObject();
   });
 });
 
