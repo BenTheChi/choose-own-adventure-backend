@@ -62,7 +62,7 @@ io.on("connection", (socket: any) => {
 
   socket.on(CHAT_MESSAGE_KEY, (message: string) => {
     console.log("Received message:", message);
-    io.emit("chat-message", message); // Broadcast to all clients
+    io.emit(CHAT_MESSAGE_KEY, message); // Broadcast to all clients
   });
 
   socket.on(USER_ENTER_KEY, (user: User) => {
@@ -133,5 +133,5 @@ io.on("connection", (socket: any) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Chatroom server running on port ${PORT}`);
+  console.log(`Game server running on port ${PORT}`);
 });
